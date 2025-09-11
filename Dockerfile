@@ -15,14 +15,15 @@ COPY src ./src
 RUN mvn clean package -DskipTests
 
 # Runtime stage
-FROM eclipse-temurin:17-jre-alpine
+FROM eclipse-temurin:17-jre
 
 # Create app directory
 WORKDIR /app
 
-# Create non-root user
-RUN addgroup -g 1001 -S appuser && \
-    adduser -u 1001 -S appuser -G appuser
+# Install wget for healthcheck and create non-root user
+RUN apt-get update && apt-get install -y wget && \
+    groupadd -g 1001 appuser && \
+    useradd -u 1001 -g appuser appuser
 
 # Copy jar from builder stage
 COPY --from=builder /app/target/*.jar app.jar
@@ -47,8 +48,8 @@ ENTRYPOINT ["java", \
     "-Xmx1g", \
     "-XX:+UseG1GC", \
     "-XX:MaxGCPauseMillis=200", \
-    "-XX:+UnlockExperimentalVMOptions", \
-    "-XX:+UseCGroupMemoryLimitForHeap", \
+    "-XX:+UseContainerSupport", \
+    "-XX:MaxRAMPercentage=75.0", \
     "-Dspring.profiles.active=prod", \
     "-Djava.security.egd=file:/dev/./urandom", \
     "-jar", "app.jar"]

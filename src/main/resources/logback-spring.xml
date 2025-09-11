@@ -16,7 +16,7 @@
             <pattern>%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n</pattern>
         </encoder>
         <rollingPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">
-            <fileNamePattern>${LOG_FILE:-logs/application}.%d{yyyy-MM-dd}.%i.gz</fileNamePattern>
+            <fileNamePattern>logs/application.log.%d{yyyy-MM-dd}.%i.gz</fileNamePattern>
             <maxFileSize>10MB</maxFileSize>
             <maxHistory>30</maxHistory>
             <totalSizeCap>300MB</totalSizeCap>
@@ -25,14 +25,14 @@
     
     <!-- JSON appender for structured logging in production -->
     <appender name="JSON" class="ch.qos.logback.core.rolling.RollingFileAppender">
-        <file>${LOG_FILE:-logs/application-json.log}</file>
+        <file>logs/application-json.log</file>
         <encoder class="net.logstash.logback.encoder.LogstashEncoder">
             <includeContext>true</includeContext>
             <includeMdc>true</includeMdc>
             <customFields>{"service":"productapp"}</customFields>
         </encoder>
         <rollingPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">
-            <fileNamePattern>${LOG_FILE:-logs/application-json}.%d{yyyy-MM-dd}.%i.gz</fileNamePattern>
+            <fileNamePattern>logs/application-json.log.%d{yyyy-MM-dd}.%i.gz</fileNamePattern>
             <maxFileSize>10MB</maxFileSize>
             <maxHistory>30</maxHistory>
             <totalSizeCap>300MB</totalSizeCap>
