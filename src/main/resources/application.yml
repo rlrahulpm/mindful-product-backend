@@ -20,11 +20,34 @@ spring:
           batch_size: 20
         order_inserts: true
         order_updates: true
+        generate_statistics: true
     database-platform: org.hibernate.dialect.MySQLDialect
+  
+  cache:
+    type: caffeine
+    caffeine:
+      spec: maximumSize=500,expireAfterWrite=5m
 
 jwt:
   secret: ${JWT_SECRET:L9IpFzkQ1yerb0DzQfwYBXOMwrcQxKtfuFQGb5RCwUo=}
   expiration: ${JWT_EXPIRATION:86400000}
+
+# Actuator configuration
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics
+      base-path: /actuator
+  endpoint:
+    health:
+      show-details: when-authorized
+      show-components: always
+  health:
+    db:
+      enabled: true
+    diskspace:
+      enabled: true
 
 # Logging Configuration
 logging:

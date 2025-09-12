@@ -13,14 +13,22 @@
     <appender name="FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
         <file>${LOG_FILE:-logs/application.log}</file>
         <encoder>
-            <pattern>%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n</pattern>
+            <pattern>%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level [%X{traceId:-},%X{spanId:-}] %logger{36} - %msg%n</pattern>
         </encoder>
         <rollingPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">
             <fileNamePattern>logs/application.log.%d{yyyy-MM-dd}.%i.gz</fileNamePattern>
-            <maxFileSize>10MB</maxFileSize>
+            <maxFileSize>100MB</maxFileSize>
             <maxHistory>30</maxHistory>
-            <totalSizeCap>300MB</totalSizeCap>
+            <totalSizeCap>3GB</totalSizeCap>
         </rollingPolicy>
+    </appender>
+
+    <!-- Async wrapper for better performance -->
+    <appender name="ASYNC_FILE" class="ch.qos.logback.classic.AsyncAppender">
+        <appender-ref ref="FILE"/>
+        <queueSize>1024</queueSize>
+        <discardingThreshold>0</discardingThreshold>
+        <includeCallerData>false</includeCallerData>
     </appender>
     
     <!-- JSON appender for structured logging in production -->
@@ -72,13 +80,13 @@
     <springProfile name="dev,default">
         <root level="INFO">
             <appender-ref ref="CONSOLE"/>
-            <appender-ref ref="FILE"/>
+            <appender-ref ref="ASYNC_FILE"/>
         </root>
     </springProfile>
     
     <springProfile name="prod">
-        <root level="WARN">
-            <appender-ref ref="FILE"/>
+        <root level="INFO">
+            <appender-ref ref="ASYNC_FILE"/>
             <appender-ref ref="JSON"/>
         </root>
     </springProfile>

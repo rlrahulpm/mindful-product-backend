@@ -33,7 +33,8 @@ public class SwaggerConfig {
                                 .name("Apache 2.0")
                                 .url("http://www.apache.org/licenses/LICENSE-2.0.html")))
                 .servers(List.of(
-                        new Server().url("http://localhost:8080").description("Local Development Server")
+                        new Server().url("http://localhost:8080").description("Local Development Server"),
+                        new Server().url("https://api.mindful.com").description("Production Server")
                 ))
                 .addSecurityItem(new SecurityRequirement().addList(securitySchemeName))
                 .components(new Components()
