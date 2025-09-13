@@ -36,7 +36,7 @@ import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/v2/products/{productId}/roadmap")
-@CrossOrigin(origins = "http://localhost:3000")
+@CrossOrigin(origins = {"http://localhost:3000", "http://localhost:3001"}, allowCredentials = "true")
 public class QuarterlyRoadmapV2Controller {
 
     private static final Logger logger = LoggerFactory.getLogger(QuarterlyRoadmapV2Controller.class);
