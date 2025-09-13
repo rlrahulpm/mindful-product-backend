@@ -163,7 +163,50 @@ public class BacklogEpicController {
             return ResponseEntity.status(500).body("Error updating backlog epics");
         }
     }
-    
+
+    @DeleteMapping("/{epicId}")
+    @Transactional
+    @Operation(summary = "Delete specific epic from backlog", description = "Delete an epic and cascade delete across modules")
+    public ResponseEntity<?> deleteBacklogEpic(@PathVariable Long productId, @PathVariable String epicId, HttpServletRequest httpRequest) {
+        try {
+            // Get user ID from JWT token
+            String token = httpRequest.getHeader("Authorization").substring(7);
+            Long userId = jwtUtil.getUserIdFromJwtToken(token);
+
+            // Check if user owns the product
+            Optional<Product> productOpt = productRepository.findById(productId);
+            if (productOpt.isEmpty()) {
+                return ResponseEntity.notFound().build();
+            }
+
+            Product product = productOpt.get();
+            if (!product.getUser().getId().equals(userId)) {
+                logger.warn("User ID: {} attempted to delete epic from product ID: {} they don't own", userId, productId);
+                return ResponseEntity.status(403).body("Access denied");
+            }
+
+            // Check if epic exists in this product's backlog
+            Optional<BacklogEpic> epicOpt = backlogEpicRepository.findByProductIdAndEpicId(productId, epicId);
+            if (epicOpt.isEmpty()) {
+                return ResponseEntity.notFound().build();
+            }
+
+            // Delete the epic from backlog
+            backlogEpicRepository.deleteByProductIdAndEpicId(productId, epicId);
+
+            // Cascade delete from related modules
+            roadmapItemRepository.deleteByEpicIdAndProductId(epicId, productId);
+            epicEffortRepository.deleteByEpicIdAndProductId(epicId, productId);
+
+            logger.info("Successfully deleted epic {} from product {}", epicId, productId);
+            return ResponseEntity.ok("Epic deleted successfully");
+
+        } catch (Exception e) {
+            logger.error("Error deleting epic {} from product ID: {}", epicId, productId, e);
+            return ResponseEntity.status(500).body("Error deleting epic");
+        }
+    }
+
     private BacklogEpicResponse convertToResponse(Long productId, List<BacklogEpic> epics) {
         BacklogEpicResponse response = new BacklogEpicResponse();
         response.setProductId(productId);

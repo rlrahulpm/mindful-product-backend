@@ -15,6 +15,7 @@ public interface BacklogEpicRepository extends JpaRepository<BacklogEpic, Long> 
     List<BacklogEpic> findByProductId(Long productId);
     void deleteByProductId(Long productId);
     Optional<BacklogEpic> findByProductIdAndEpicId(Long productId, String epicId);
+    void deleteByProductIdAndEpicId(Long productId, String epicId);
     
     @Modifying
     @Query(value = "DELETE FROM backlog_epics WHERE product_id = :productId", nativeQuery = true)
