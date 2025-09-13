@@ -28,6 +28,7 @@ import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/v3/products/{productId}/backlog")
+@CrossOrigin(origins = {"http://localhost:3000", "http://localhost:3001"}, allowCredentials = "true")
 @Tag(name = "Backlog Epic V3", description = "Simplified backlog epic management without intermediate product_backlog table")
 public class BacklogEpicController {
     
