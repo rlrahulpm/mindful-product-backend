@@ -23,6 +23,8 @@ public interface KanbanItemRepository extends JpaRepository<KanbanItem, Long> {
     List<KanbanItem> findByProductId(@Param("productId") Long productId);
     
     List<KanbanItem> findByEpicIdAndProduct(String epicId, Product product);
-    
+
     void deleteByProductAndId(Product product, Long id);
+
+    void deleteByEpicIdAndProductId(String epicId, Long productId);
 }

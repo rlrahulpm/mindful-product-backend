@@ -72,7 +72,7 @@ public class RoadmapItem {
     
     @Column(name = "published_date")
     private LocalDate publishedDate;
-    
+
     @Column(name = "created_at")
     private LocalDateTime createdAt;
     

@@ -37,8 +37,7 @@ public class CacheConfig implements CachingConfigurer {
                 .expireAfterAccess(30, TimeUnit.MINUTES)
                 .expireAfterWrite(60, TimeUnit.MINUTES)
                 .recordStats()
-                .removalListener((key, value, cause) -> 
-                    System.out.println("Cache entry removed: " + key + " due to " + cause));
+                .removalListener((key, value, cause) -> {});
     }
 
     @Bean

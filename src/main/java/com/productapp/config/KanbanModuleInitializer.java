@@ -42,10 +42,8 @@ public class KanbanModuleInitializer implements CommandLineRunner {
             kanbanModule.setIsActive(true);
             kanbanModule.setDisplayOrder(8);
             kanbanModule = moduleRepository.save(kanbanModule);
-            System.out.println("Created Kanban Board module");
         } else {
             kanbanModule = existingModule.get();
-            System.out.println("Kanban Board module already exists");
         }
 
         // Add Kanban Board module to all products that don't have it
@@ -58,7 +56,6 @@ public class KanbanModuleInitializer implements CommandLineRunner {
                 pm.setModule(kanbanModule);
                 pm.setIsEnabled(true);
                 productModuleRepository.save(pm);
-                System.out.println("Added Kanban Board module to product: " + product.getProductName());
             }
         }
     }

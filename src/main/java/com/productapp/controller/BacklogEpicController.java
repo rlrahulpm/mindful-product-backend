@@ -29,7 +29,6 @@ import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/v3/products/{productId}/backlog")
-@CrossOrigin(origins = {"http://localhost:3000", "http://localhost:3001"}, allowCredentials = "true", methods = {RequestMethod.GET, RequestMethod.POST, RequestMethod.PUT, RequestMethod.DELETE, RequestMethod.OPTIONS})
 @Tag(name = "Backlog Epic V3", description = "Simplified backlog epic management without intermediate product_backlog table")
 public class BacklogEpicController {
     
@@ -196,7 +195,9 @@ public class BacklogEpicController {
             backlogEpicRepository.deleteByProductIdAndEpicId(productId, epicId);
 
             // Cascade delete from related modules
+            logger.info("Deleting roadmap items for epic {} in product {}", epicId, productId);
             roadmapItemRepository.deleteByEpicIdAndProductId(epicId, productId);
+            logger.info("Deleting effort data for epic {} in product {}", epicId, productId);
             epicEffortRepository.deleteByEpicIdAndProductId(epicId, productId);
 
             logger.info("Successfully deleted epic {} from product {}", epicId, productId);
