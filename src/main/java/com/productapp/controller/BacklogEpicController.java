@@ -8,6 +8,7 @@ import com.productapp.repository.BacklogEpicRepository;
 import com.productapp.repository.ProductRepository;
 import com.productapp.repository.RoadmapItemRepository;
 import com.productapp.repository.EpicEffortRepository;
+import com.productapp.service.UserStoryService;
 import com.productapp.util.JwtUtil;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -48,7 +49,10 @@ public class BacklogEpicController {
     
     @Autowired
     private EpicEffortRepository epicEffortRepository;
-    
+
+    @Autowired
+    private UserStoryService userStoryService;
+
     @GetMapping
     @Operation(summary = "Get product backlog epics", description = "Retrieve all epics for a specific product")
     public ResponseEntity<?> getProductBacklogEpics(@PathVariable Long productId, HttpServletRequest request) {
@@ -143,6 +147,24 @@ public class BacklogEpicController {
                 
                 // Save all new epics
                 backlogEpicRepository.saveAll(newEpics);
+
+                // Process user stories for each epic
+                for (EpicDto epicDto : epicDtos) {
+                    if (epicDto.getUserStories() != null && !epicDto.getUserStories().isEmpty()) {
+                        for (UserStoryDto userStoryDto : epicDto.getUserStories()) {
+                            userStoryService.createUserStory(
+                                productId,
+                                epicDto.getId(),
+                                userStoryDto.getTitle(),
+                                userStoryDto.getDescription(),
+                                userStoryDto.getAcceptanceCriteria(),
+                                userStoryDto.getPriority(),
+                                userStoryDto.getStoryPoints(),
+                                userId
+                            );
+                        }
+                    }
+                }
             }
             
             // Find deleted epics and cascade delete
@@ -150,6 +172,7 @@ public class BacklogEpicController {
             deletedEpicIds.removeAll(newEpicIds);
             
             for (String deletedEpicId : deletedEpicIds) {
+                userStoryService.deleteStoriesByEpic(deletedEpicId);
                 roadmapItemRepository.deleteByEpicIdAndProductId(deletedEpicId, productId);
                 epicEffortRepository.deleteByEpicIdAndProductId(deletedEpicId, productId);
             }
@@ -195,6 +218,8 @@ public class BacklogEpicController {
             backlogEpicRepository.deleteByProductIdAndEpicId(productId, epicId);
 
             // Cascade delete from related modules
+            logger.info("Deleting user stories for epic {} in product {}", epicId, productId);
+            userStoryService.deleteStoriesByEpic(epicId);
             logger.info("Deleting roadmap items for epic {} in product {}", epicId, productId);
             roadmapItemRepository.deleteByEpicIdAndProductId(epicId, productId);
             logger.info("Deleting effort data for epic {} in product {}", epicId, productId);
@@ -249,6 +274,7 @@ public class BacklogEpicController {
     }
     
     // DTO class for epic data
+    @com.fasterxml.jackson.annotation.JsonIgnoreProperties(ignoreUnknown = true)
     public static class EpicDto {
         private String id;
         private String name;
@@ -259,6 +285,7 @@ public class BacklogEpicController {
         private String initiativeId;
         private String initiativeName;
         private String track;
+        private List<UserStoryDto> userStories;
         
         public String getId() { return id; }
         public void setId(String id) { this.id = id; }
@@ -286,5 +313,44 @@ public class BacklogEpicController {
         
         public String getTrack() { return track; }
         public void setTrack(String track) { this.track = track; }
+
+        public List<UserStoryDto> getUserStories() { return userStories; }
+        public void setUserStories(List<UserStoryDto> userStories) { this.userStories = userStories; }
+    }
+
+    // DTO class for user story data
+    public static class UserStoryDto {
+        private Long id;
+        private String title;
+        private String description;
+        private String acceptanceCriteria;
+        private String priority;
+        private String status;
+        private Integer storyPoints;
+        private Integer displayOrder;
+
+        public Long getId() { return id; }
+        public void setId(Long id) { this.id = id; }
+
+        public String getTitle() { return title; }
+        public void setTitle(String title) { this.title = title; }
+
+        public String getDescription() { return description; }
+        public void setDescription(String description) { this.description = description; }
+
+        public String getAcceptanceCriteria() { return acceptanceCriteria; }
+        public void setAcceptanceCriteria(String acceptanceCriteria) { this.acceptanceCriteria = acceptanceCriteria; }
+
+        public String getPriority() { return priority; }
+        public void setPriority(String priority) { this.priority = priority; }
+
+        public String getStatus() { return status; }
+        public void setStatus(String status) { this.status = status; }
+
+        public Integer getStoryPoints() { return storyPoints; }
+        public void setStoryPoints(Integer storyPoints) { this.storyPoints = storyPoints; }
+
+        public Integer getDisplayOrder() { return displayOrder; }
+        public void setDisplayOrder(Integer displayOrder) { this.displayOrder = displayOrder; }
     }
 }
