@@ -5,6 +5,7 @@ import com.productapp.entity.Product;
 import com.productapp.entity.RoadmapItem;
 import com.productapp.repository.ProductRepository;
 import com.productapp.repository.RoadmapItemRepository;
+import com.productapp.util.SlugUtil;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
