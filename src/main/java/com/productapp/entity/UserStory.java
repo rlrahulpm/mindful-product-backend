@@ -1,6 +1,7 @@
 package com.productapp.entity;
 
 import jakarta.persistence.*;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import java.time.LocalDateTime;
 
 @Entity
@@ -16,6 +17,7 @@ public class UserStory {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "product_id", nullable = false)
+    @JsonIgnore
     private Product product;
 
     @Column(name = "title", nullable = false)
@@ -79,6 +81,7 @@ public class UserStory {
         this.epicId = epicId;
     }
 
+    @JsonIgnore
     public Product getProduct() {
         return product;
     }
