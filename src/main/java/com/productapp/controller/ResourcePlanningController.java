@@ -27,38 +27,9 @@ public class ResourcePlanningController {
     @Autowired
     private ProductRepository productRepository;
 
-    // Teams endpoints
-    @PostMapping("/teams")
-    public ResponseEntity<Team> createTeam(@PathVariable Long productId,
-                                         @Valid @RequestBody TeamRequest request) {
-        try {
-            Team team = resourcePlanningService.createTeam(productId, request);
-            return ResponseEntity.ok(team);
-        } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
-        }
-    }
-
-    @GetMapping("/teams")
-    public ResponseEntity<List<Team>> getTeams(@PathVariable Long productId) {
-        try {
-            List<Team> teams = resourcePlanningService.getTeamsByProduct(productId);
-            return ResponseEntity.ok(teams);
-        } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
-        }
-    }
-
-    @DeleteMapping("/teams/{teamId}")
-    public ResponseEntity<Void> deleteTeam(@PathVariable Long productId,
-                                         @PathVariable Long teamId) {
-        try {
-            resourcePlanningService.deleteTeam(teamId);
-            return ResponseEntity.ok().build();
-        } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
-        }
-    }
+    // Note: Team endpoints have been moved to CapacityPlanningController
+    // Teams are now managed at the quarterly capacity plan level instead of product level
+    // Use /api/products/{productId}/capacity-planning/{year}/{quarter}/teams endpoints
 
     // Members endpoints
     @PostMapping("/teams/{teamId}/members")

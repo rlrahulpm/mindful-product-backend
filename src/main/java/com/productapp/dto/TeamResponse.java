@@ -7,18 +7,18 @@ public class TeamResponse {
     private Long id;
     private String name;
     private String description;
-    private Long productId;
+    private Long capacityPlanId;
     private Boolean isActive;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
-    
+
     public TeamResponse() {}
-    
+
     public TeamResponse(Team team) {
         this.id = team.getId();
         this.name = team.getName();
         this.description = team.getDescription();
-        this.productId = team.getProductId();
+        this.capacityPlanId = team.getCapacityPlanId();
         this.isActive = team.getIsActive();
         this.createdAt = team.getCreatedAt();
         this.updatedAt = team.getUpdatedAt();
@@ -48,12 +48,12 @@ public class TeamResponse {
         this.description = description;
     }
     
-    public Long getProductId() {
-        return productId;
+    public Long getCapacityPlanId() {
+        return capacityPlanId;
     }
-    
-    public void setProductId(Long productId) {
-        this.productId = productId;
+
+    public void setCapacityPlanId(Long capacityPlanId) {
+        this.capacityPlanId = capacityPlanId;
     }
     
     public Boolean getIsActive() {

@@ -30,6 +30,10 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.HashMap;
+import java.util.Map;
+import java.util.UUID;
+
 import jakarta.validation.Valid;
 import java.util.List;
 import java.util.Set;
@@ -431,24 +435,52 @@ public class AdminController {
         return ResponseEntity.ok(convertToUserResponse(user));
     }
     
+    @PostMapping("/users/{userId}/reset-password")
+    @Operation(summary = "Generate password reset link", description = "Generate a password reset link for a user")
+    public ResponseEntity<?> resetUserPassword(
+            @PathVariable Long userId,
+            Authentication authentication) {
+
+        checkSuperadmin(authentication);
+
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("User", "id", userId));
+
+        // Generate reset token
+        String resetToken = UUID.randomUUID().toString();
+
+        // Store token
+        AuthController.storeResetToken(resetToken, userId);
+
+        // Generate reset link
+        String resetLink = "http://localhost:3000/set-password/" + resetToken;
+
+        Map<String, String> response = new HashMap<>();
+        response.put("resetLink", resetLink);
+        response.put("token", resetToken);
+        response.put("message", "Password reset link generated successfully");
+
+        return ResponseEntity.ok(response);
+    }
+
     @DeleteMapping("/users/{userId}")
     @Operation(summary = "Delete user", description = "Delete a user")
     public ResponseEntity<Void> deleteUser(
             @PathVariable Long userId,
             Authentication authentication) {
-        
+
         checkSuperadmin(authentication);
-        
+
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("User", "id", userId));
-        
+
         // Don't allow deleting superadmin users
         if (user.getIsSuperadmin() != null && user.getIsSuperadmin()) {
             throw new IllegalArgumentException("Cannot delete superadmin users");
         }
-        
+
         userRepository.delete(user);
-        
+
         return ResponseEntity.ok().build();
     }
     

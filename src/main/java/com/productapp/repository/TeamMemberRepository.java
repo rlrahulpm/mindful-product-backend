@@ -19,13 +19,15 @@ public interface TeamMemberRepository extends JpaRepository<TeamMember, Long> {
 
     @Query("SELECT tm FROM TeamMember tm " +
            "JOIN Team t ON tm.teamId = t.id " +
-           "WHERE t.productId = :productId AND t.isActive = true " +
+           "JOIN CapacityPlan cp ON t.capacityPlanId = cp.id " +
+           "WHERE cp.productId = :productId AND t.isActive = true " +
            "ORDER BY tm.memberName")
     List<TeamMember> findByProductId(@Param("productId") Long productId);
 
     @Query("SELECT tm FROM TeamMember tm " +
            "JOIN Team t ON tm.teamId = t.id " +
-           "WHERE t.productId = :productId AND t.isActive = true " +
+           "JOIN CapacityPlan cp ON t.capacityPlanId = cp.id " +
+           "WHERE cp.productId = :productId AND t.isActive = true " +
            "AND tm.id NOT IN (" +
            "  SELECT ra.memberId FROM ResourceAssignment ra " +
            "  WHERE ra.startDate <= :endDate AND ra.endDate >= :startDate" +

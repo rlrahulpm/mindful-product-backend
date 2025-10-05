@@ -37,36 +37,30 @@ public class InitiativeService {
         return initiativeRepository.save(initiative);
     }
     
-    public Initiative createInitiative(Product product, String title, String description, 
-                                     String priority, String timeline, String owner) {
+    public Initiative createInitiative(Product product, String title) {
         if (initiativeRepository.existsByProductIdAndTitle(product.getId(), title)) {
             throw new IllegalArgumentException("Initiative with title '" + title + "' already exists for this product");
         }
-        
-        Initiative initiative = new Initiative(product, title, description, priority, timeline, owner);
+
+        Initiative initiative = new Initiative(product, title);
         return initiativeRepository.save(initiative);
     }
     
-    public Initiative updateInitiative(Long id, Long productId, String title, String description, 
-                                     String priority, String timeline, String owner) {
+    public Initiative updateInitiative(Long id, Long productId, String title) {
         Optional<Initiative> existingInitiative = initiativeRepository.findByIdAndProductId(id, productId);
         if (existingInitiative.isEmpty()) {
             throw new IllegalArgumentException("Initiative not found");
         }
-        
+
         Initiative initiative = existingInitiative.get();
-        
-        if (!initiative.getTitle().equals(title) && 
+
+        if (!initiative.getTitle().equals(title) &&
             initiativeRepository.existsByProductIdAndTitle(productId, title)) {
             throw new IllegalArgumentException("Initiative with title '" + title + "' already exists for this product");
         }
-        
+
         initiative.setTitle(title);
-        initiative.setDescription(description);
-        initiative.setPriority(priority);
-        initiative.setTimeline(timeline);
-        initiative.setOwner(owner);
-        
+
         return initiativeRepository.save(initiative);
     }
     

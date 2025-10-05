@@ -9,42 +9,42 @@ import java.time.LocalDateTime;
 @Entity
 @Table(name = "teams")
 public class Team {
-    
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
-    
+
     @Column(nullable = false)
     private String name;
-    
+
     @Column(columnDefinition = "TEXT")
     private String description;
-    
-    @Column(name = "product_id", nullable = false)
-    private Long productId;
-    
+
+    @Column(name = "capacity_plan_id", nullable = false)
+    private Long capacityPlanId;
+
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "product_id", insertable = false, updatable = false)
+    @JoinColumn(name = "capacity_plan_id", insertable = false, updatable = false)
     @JsonIgnore
-    private Product product;
-    
+    private CapacityPlan capacityPlan;
+
     @Column(name = "is_active", nullable = false)
     private Boolean isActive = true;
-    
+
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
-    
+
     @UpdateTimestamp
     @Column(name = "updated_at", nullable = false)
     private LocalDateTime updatedAt;
-    
+
     public Team() {}
-    
-    public Team(String name, String description, Long productId) {
+
+    public Team(String name, String description, Long capacityPlanId) {
         this.name = name;
         this.description = description;
-        this.productId = productId;
+        this.capacityPlanId = capacityPlanId;
     }
     
     public Long getId() {
@@ -71,20 +71,20 @@ public class Team {
         this.description = description;
     }
     
-    public Long getProductId() {
-        return productId;
+    public Long getCapacityPlanId() {
+        return capacityPlanId;
     }
-    
-    public void setProductId(Long productId) {
-        this.productId = productId;
+
+    public void setCapacityPlanId(Long capacityPlanId) {
+        this.capacityPlanId = capacityPlanId;
     }
-    
-    public Product getProduct() {
-        return product;
+
+    public CapacityPlan getCapacityPlan() {
+        return capacityPlan;
     }
-    
-    public void setProduct(Product product) {
-        this.product = product;
+
+    public void setCapacityPlan(CapacityPlan capacityPlan) {
+        this.capacityPlan = capacityPlan;
     }
     
     public Boolean getIsActive() {

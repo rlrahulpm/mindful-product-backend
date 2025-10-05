@@ -41,7 +41,8 @@ public interface ResourceAssignmentRepository extends JpaRepository<ResourceAssi
     @Query("SELECT ra FROM ResourceAssignment ra " +
            "JOIN TeamMember tm ON ra.memberId = tm.id " +
            "JOIN Team t ON tm.teamId = t.id " +
-           "WHERE t.productId = :productId " +
+           "JOIN CapacityPlan cp ON t.capacityPlanId = cp.id " +
+           "WHERE cp.productId = :productId " +
            "ORDER BY ra.startDate")
     List<ResourceAssignment> findByProductIdWithDetails(@Param("productId") Long productId);
 }

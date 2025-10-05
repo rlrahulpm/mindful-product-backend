@@ -43,18 +43,14 @@ public class InitiativeController {
             if (product.isEmpty()) {
                 return ResponseEntity.notFound().build();
             }
-            
+
             String title = (String) initiativeData.get("title");
-            String description = (String) initiativeData.get("description");
-            String priority = (String) initiativeData.get("priority");
-            String timeline = (String) initiativeData.get("timeline");
-            String owner = (String) initiativeData.get("owner");
-            
+
             if (title == null || title.trim().isEmpty()) {
                 return ResponseEntity.badRequest().build();
             }
-            
-            Initiative initiative = initiativeService.createInitiative(product.get(), title, description, priority, timeline, owner);
+
+            Initiative initiative = initiativeService.createInitiative(product.get(), title);
             return ResponseEntity.ok(initiative);
         } catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest().build();
@@ -62,20 +58,16 @@ public class InitiativeController {
     }
     
     @PutMapping("/{initiativeId}")
-    public ResponseEntity<Initiative> updateInitiative(@PathVariable Long productId, @PathVariable Long initiativeId, 
+    public ResponseEntity<Initiative> updateInitiative(@PathVariable Long productId, @PathVariable Long initiativeId,
                                                       @RequestBody Map<String, Object> initiativeData) {
         try {
             String title = (String) initiativeData.get("title");
-            String description = (String) initiativeData.get("description");
-            String priority = (String) initiativeData.get("priority");
-            String timeline = (String) initiativeData.get("timeline");
-            String owner = (String) initiativeData.get("owner");
-            
+
             if (title == null || title.trim().isEmpty()) {
                 return ResponseEntity.badRequest().build();
             }
-            
-            Initiative initiative = initiativeService.updateInitiative(initiativeId, productId, title, description, priority, timeline, owner);
+
+            Initiative initiative = initiativeService.updateInitiative(initiativeId, productId, title);
             return ResponseEntity.ok(initiative);
         } catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest().build();

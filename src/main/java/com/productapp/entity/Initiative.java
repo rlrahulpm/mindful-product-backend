@@ -24,18 +24,6 @@ public class Initiative {
     @Column(name = "title", nullable = false)
     private String title;
     
-    @Column(name = "description", columnDefinition = "TEXT")
-    private String description;
-    
-    @Column(name = "priority", nullable = false, length = 50)
-    private String priority; // Low, Medium, High, Critical
-    
-    @Column(name = "timeline")
-    private String timeline;
-    
-    @Column(name = "owner")
-    private String owner;
-    
     @CreatedDate
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
@@ -47,13 +35,9 @@ public class Initiative {
     // Constructors
     public Initiative() {}
     
-    public Initiative(Product product, String title, String description, String priority, String timeline, String owner) {
+    public Initiative(Product product, String title) {
         this.product = product;
         this.title = title;
-        this.description = description;
-        this.priority = priority;
-        this.timeline = timeline;
-        this.owner = owner;
     }
     
     // Getters and Setters
@@ -76,41 +60,9 @@ public class Initiative {
     public String getTitle() {
         return title;
     }
-    
+
     public void setTitle(String title) {
         this.title = title;
-    }
-    
-    public String getDescription() {
-        return description;
-    }
-    
-    public void setDescription(String description) {
-        this.description = description;
-    }
-    
-    public String getPriority() {
-        return priority;
-    }
-    
-    public void setPriority(String priority) {
-        this.priority = priority;
-    }
-    
-    public String getTimeline() {
-        return timeline;
-    }
-    
-    public void setTimeline(String timeline) {
-        this.timeline = timeline;
-    }
-    
-    public String getOwner() {
-        return owner;
-    }
-    
-    public void setOwner(String owner) {
-        this.owner = owner;
     }
     
     public LocalDateTime getCreatedAt() {

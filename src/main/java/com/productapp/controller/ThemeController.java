@@ -45,17 +45,16 @@ public class ThemeController {
             }
             
             String name = (String) themeData.get("name");
-            String description = (String) themeData.get("description");
             String color = (String) themeData.get("color");
-            
+
             if (name == null || name.trim().isEmpty()) {
                 return ResponseEntity.badRequest().build();
             }
             if (color == null || color.trim().isEmpty()) {
                 return ResponseEntity.badRequest().build();
             }
-            
-            Theme theme = themeService.createTheme(product.get(), name, description, color);
+
+            Theme theme = themeService.createTheme(product.get(), name, color);
             return ResponseEntity.ok(theme);
         } catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest().build();
@@ -67,17 +66,16 @@ public class ThemeController {
                                            @RequestBody Map<String, Object> themeData) {
         try {
             String name = (String) themeData.get("name");
-            String description = (String) themeData.get("description");
             String color = (String) themeData.get("color");
-            
+
             if (name == null || name.trim().isEmpty()) {
                 return ResponseEntity.badRequest().build();
             }
             if (color == null || color.trim().isEmpty()) {
                 return ResponseEntity.badRequest().build();
             }
-            
-            Theme theme = themeService.updateTheme(themeId, productId, name, description, color);
+
+            Theme theme = themeService.updateTheme(themeId, productId, name, color);
             return ResponseEntity.ok(theme);
         } catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest().build();

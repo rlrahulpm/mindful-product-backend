@@ -447,18 +447,24 @@ public class QuarterlyRoadmapV2Controller {
             List<RoadmapItem> itemsToPublish = new ArrayList<>();
             List<RoadmapItem> itemsToRemove = new ArrayList<>();
 
-            // If epic IDs are provided in request, publish ALL of them
+            // If epic IDs are provided in request, publish only those with valid status (not Proposed)
             if (request != null && request.getEpicIds() != null && !request.getEpicIds().isEmpty()) {
                 List<String> epicIdsToPublish = request.getEpicIds();
-                logger.info("Publishing ALL specified epic IDs: {}", epicIdsToPublish);
+                logger.info("Publishing specified epic IDs: {}", epicIdsToPublish);
 
                 for (RoadmapItem item : items) {
                     if (epicIdsToPublish.contains(item.getEpicId())) {
-                        // Publish ALL items in the list regardless of status
-                        itemsToPublish.add(item);
-                        item.setPublished(true);
-                        item.setPublishedDate(LocalDate.now());
-                        logger.info("Publishing epic: {} with status: {}", item.getEpicId(), item.getStatus());
+                        // Only publish items that are NOT in Proposed status
+                        if (!"Proposed".equals(item.getStatus())) {
+                            itemsToPublish.add(item);
+                            item.setPublished(true);
+                            item.setPublishedDate(LocalDate.now());
+                            logger.info("Publishing epic: {} with status: {}", item.getEpicId(), item.getStatus());
+                        } else {
+                            // Proposed items should be removed from roadmap planner
+                            itemsToRemove.add(item);
+                            logger.info("Removing proposed epic: {} from roadmap planner", item.getEpicId());
+                        }
                     }
                 }
             } else {
@@ -481,23 +487,27 @@ public class QuarterlyRoadmapV2Controller {
                 }
             }
 
-            // Don't remove any items when using epic ID list - publish everything sent
-            
             // Save published items with their published status
             if (!itemsToPublish.isEmpty()) {
                 roadmapItemRepository.saveAll(itemsToPublish);
                 logger.info("Published {} items to roadmap visualization", itemsToPublish.size());
             }
-            
+
+            // Remove proposed items from roadmap planner
+            if (!itemsToRemove.isEmpty()) {
+                roadmapItemRepository.deleteAll(itemsToRemove);
+                logger.info("Removed {} proposed items from roadmap planner", itemsToRemove.size());
+            }
+
             // Update roadmap publish status
             roadmap.setPublished(true);
             roadmap.setPublishedDate(LocalDate.now());
             quarterlyRoadmapRepository.save(roadmap);
-            
+
             Map<String, Object> response = new HashMap<>();
             response.put("publishedCount", itemsToPublish.size());
-            response.put("removedCount", 0); // No items removed when using epic ID list
-            response.put("message", String.format("Successfully published %d items for Q%d %d roadmap", itemsToPublish.size(), quarter, year));
+            response.put("removedCount", itemsToRemove.size());
+            response.put("message", String.format("Successfully published %d items and removed %d proposed items for Q%d %d roadmap", itemsToPublish.size(), itemsToRemove.size(), quarter, year));
             
             return ResponseEntity.ok(response);
             

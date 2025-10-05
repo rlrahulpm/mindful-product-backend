@@ -74,118 +74,148 @@ public class CapacityPlanningController {
         }
     }
     
-    // Get all teams for a product
-    @GetMapping("/teams")
-    public ResponseEntity<?> getTeams(@PathVariable Long productId, Authentication authentication) {
+    // Get all teams for a capacity plan (quarterly scoped)
+    @GetMapping("/{year}/{quarter}/teams")
+    public ResponseEntity<?> getTeams(@PathVariable Long productId, @PathVariable Integer year, @PathVariable Integer quarter, Authentication authentication) {
         try {
             UserPrincipal userPrincipal = (UserPrincipal) authentication.getPrincipal();
-            
+
             if (!hasProductAccess(productId, userPrincipal.getId())) {
                 logger.warn("User {} attempted to access teams for product {} without permission", userPrincipal.getId(), productId);
                 return ResponseEntity.notFound().build();
             }
-            
-            List<Team> teams = teamRepository.findByProductIdAndIsActiveTrue(productId);
+
+            // Get or create capacity plan
+            Optional<CapacityPlan> capacityPlanOpt = capacityPlanRepository.findByProductIdAndYearAndQuarter(productId, year, quarter);
+            if (capacityPlanOpt.isEmpty()) {
+                return ResponseEntity.ok(List.of()); // Return empty list if no capacity plan exists yet
+            }
+
+            List<Team> teams = teamRepository.findByCapacityPlanIdAndIsActiveTrue(capacityPlanOpt.get().getId());
             List<TeamResponse> teamResponses = teams.stream()
                     .map(TeamResponse::new)
                     .collect(Collectors.toList());
-            
+
             return ResponseEntity.ok(teamResponses);
-            
+
         } catch (Exception e) {
-            logger.error("Error fetching teams for product ID: {}", productId, e);
+            logger.error("Error fetching teams for product ID: {} Q{} {}", productId, quarter, year, e);
             return ResponseEntity.internalServerError().body("Error fetching teams");
         }
     }
     
-    // Add a new team
-    @PostMapping("/teams")
-    public ResponseEntity<?> addTeam(@PathVariable Long productId, @Valid @RequestBody TeamRequest request, Authentication authentication) {
+    // Add a new team to a capacity plan (quarterly scoped)
+    @PostMapping("/{year}/{quarter}/teams")
+    public ResponseEntity<?> addTeam(@PathVariable Long productId, @PathVariable Integer year, @PathVariable Integer quarter, @Valid @RequestBody TeamRequest request, Authentication authentication) {
         try {
             UserPrincipal userPrincipal = (UserPrincipal) authentication.getPrincipal();
-            
+
             if (!hasProductAccess(productId, userPrincipal.getId())) {
                 logger.warn("User {} attempted to add team to product {} without permission", userPrincipal.getId(), productId);
                 return ResponseEntity.notFound().build();
             }
-            
-            // Check if team name already exists for this product
-            if (teamRepository.existsByProductIdAndNameAndIsActiveTrue(productId, request.getName(), null)) {
-                return ResponseEntity.badRequest().body("Team name already exists for this product");
+
+            // Get or create capacity plan
+            Optional<CapacityPlan> capacityPlanOpt = capacityPlanRepository.findByProductIdAndYearAndQuarter(productId, year, quarter);
+            CapacityPlan capacityPlan;
+
+            if (capacityPlanOpt.isEmpty()) {
+                capacityPlan = new CapacityPlan(productId, year, quarter);
+                capacityPlan = capacityPlanRepository.save(capacityPlan);
+            } else {
+                capacityPlan = capacityPlanOpt.get();
             }
-            
-            Team team = new Team(request.getName(), request.getDescription(), productId);
+
+            // Check if team name already exists for this capacity plan
+            if (teamRepository.existsByCapacityPlanIdAndNameAndIsActiveTrue(capacityPlan.getId(), request.getName(), null)) {
+                return ResponseEntity.badRequest().body("Team name already exists for this quarter");
+            }
+
+            Team team = new Team(request.getName(), request.getDescription(), capacityPlan.getId());
             team.setIsActive(request.getIsActive() != null ? request.getIsActive() : true);
             team = teamRepository.save(team);
-            
+
             return ResponseEntity.ok(new TeamResponse(team));
-            
+
         } catch (Exception e) {
-            logger.error("Error adding team to product ID: {}", productId, e);
+            logger.error("Error adding team to product ID: {} Q{} {}", productId, quarter, year, e);
             return ResponseEntity.internalServerError().body("Error adding team");
         }
     }
     
     // Update a team
-    @PutMapping("/teams/{teamId}")
-    public ResponseEntity<?> updateTeam(@PathVariable Long productId, @PathVariable Long teamId, @Valid @RequestBody TeamRequest request, Authentication authentication) {
+    @PutMapping("/{year}/{quarter}/teams/{teamId}")
+    public ResponseEntity<?> updateTeam(@PathVariable Long productId, @PathVariable Integer year, @PathVariable Integer quarter, @PathVariable Long teamId, @Valid @RequestBody TeamRequest request, Authentication authentication) {
         try {
             UserPrincipal userPrincipal = (UserPrincipal) authentication.getPrincipal();
-            
+
             if (!hasProductAccess(productId, userPrincipal.getId())) {
                 logger.warn("User {} attempted to update team for product {} without permission", userPrincipal.getId(), productId);
                 return ResponseEntity.notFound().build();
             }
-            
+
             Optional<Team> teamOpt = teamRepository.findById(teamId);
-            if (teamOpt.isEmpty() || !teamOpt.get().getProductId().equals(productId)) {
+            if (teamOpt.isEmpty()) {
                 return ResponseEntity.notFound().build();
             }
-            
+
             Team team = teamOpt.get();
-            
-            // Check if team name already exists for this product (excluding current team)
-            if (teamRepository.existsByProductIdAndNameAndIsActiveTrue(productId, request.getName(), teamId)) {
-                return ResponseEntity.badRequest().body("Team name already exists for this product");
+
+            // Verify team belongs to the correct capacity plan
+            Optional<CapacityPlan> capacityPlanOpt = capacityPlanRepository.findByProductIdAndYearAndQuarter(productId, year, quarter);
+            if (capacityPlanOpt.isEmpty() || !team.getCapacityPlanId().equals(capacityPlanOpt.get().getId())) {
+                return ResponseEntity.notFound().build();
             }
-            
+
+            // Check if team name already exists for this capacity plan (excluding current team)
+            if (teamRepository.existsByCapacityPlanIdAndNameAndIsActiveTrue(team.getCapacityPlanId(), request.getName(), teamId)) {
+                return ResponseEntity.badRequest().body("Team name already exists for this quarter");
+            }
+
             team.setName(request.getName());
             team.setDescription(request.getDescription());
             team.setIsActive(request.getIsActive() != null ? request.getIsActive() : team.getIsActive());
             team = teamRepository.save(team);
-            
+
             return ResponseEntity.ok(new TeamResponse(team));
-            
+
         } catch (Exception e) {
-            logger.error("Error updating team {} for product ID: {}", teamId, productId, e);
+            logger.error("Error updating team {} for product ID: {} Q{} {}", teamId, productId, quarter, year, e);
             return ResponseEntity.internalServerError().body("Error updating team");
         }
     }
     
     // Delete a team (soft delete)
-    @DeleteMapping("/teams/{teamId}")
-    public ResponseEntity<?> deleteTeam(@PathVariable Long productId, @PathVariable Long teamId, Authentication authentication) {
+    @DeleteMapping("/{year}/{quarter}/teams/{teamId}")
+    public ResponseEntity<?> deleteTeam(@PathVariable Long productId, @PathVariable Integer year, @PathVariable Integer quarter, @PathVariable Long teamId, Authentication authentication) {
         try {
             UserPrincipal userPrincipal = (UserPrincipal) authentication.getPrincipal();
-            
+
             if (!hasProductAccess(productId, userPrincipal.getId())) {
                 logger.warn("User {} attempted to delete team for product {} without permission", userPrincipal.getId(), productId);
                 return ResponseEntity.notFound().build();
             }
-            
+
             Optional<Team> teamOpt = teamRepository.findById(teamId);
-            if (teamOpt.isEmpty() || !teamOpt.get().getProductId().equals(productId)) {
+            if (teamOpt.isEmpty()) {
                 return ResponseEntity.notFound().build();
             }
-            
+
             Team team = teamOpt.get();
+
+            // Verify team belongs to the correct capacity plan
+            Optional<CapacityPlan> capacityPlanOpt = capacityPlanRepository.findByProductIdAndYearAndQuarter(productId, year, quarter);
+            if (capacityPlanOpt.isEmpty() || !team.getCapacityPlanId().equals(capacityPlanOpt.get().getId())) {
+                return ResponseEntity.notFound().build();
+            }
+
             team.setIsActive(false);
             teamRepository.save(team);
-            
+
             return ResponseEntity.ok().body("Team deleted successfully");
-            
+
         } catch (Exception e) {
-            logger.error("Error deleting team {} for product ID: {}", teamId, productId, e);
+            logger.error("Error deleting team {} for product ID: {} Q{} {}", teamId, productId, quarter, year, e);
             return ResponseEntity.internalServerError().body("Error deleting team");
         }
     }
@@ -200,10 +230,7 @@ public class CapacityPlanningController {
                 logger.warn("User {} attempted to access capacity plan for product {} without permission", userPrincipal.getId(), productId);
                 return ResponseEntity.notFound().build();
             }
-            
-            // Get teams
-            List<Team> teams = teamRepository.findByProductIdAndIsActiveTrue(productId);
-            
+
             // Get or create capacity plan
             Optional<CapacityPlan> capacityPlanOpt = capacityPlanRepository.findByProductIdAndYearAndQuarter(productId, year, quarter);
             CapacityPlan capacityPlan;
@@ -223,10 +250,13 @@ public class CapacityPlanningController {
             
             // Get epic efforts
             List<EpicEffort> epicEfforts = epicEffortRepository.findByCapacityPlanIdOrderByEpicNameTeamId(capacityPlan.getId());
-            
+
+            // Get teams for this capacity plan
+            List<Team> teams = teamRepository.findByCapacityPlanIdAndIsActiveTrue(capacityPlan.getId());
+
             CapacityPlanResponse response = new CapacityPlanResponse(capacityPlan, epicEfforts);
             response.setTeams(teams.stream().map(TeamResponse::new).collect(Collectors.toList()));
-            
+
             return ResponseEntity.ok(response);
             
         } catch (Exception e) {
@@ -390,10 +420,10 @@ public class CapacityPlanningController {
             if (roadmapItems == null || roadmapItems.isEmpty()) {
                 return;
             }
-            
-            // Get all active teams for this product
-            List<Team> teams = teamRepository.findByProductIdAndIsActiveTrue(productId);
-            
+
+            // Get all active teams for this capacity plan
+            List<Team> teams = teamRepository.findByCapacityPlanIdAndIsActiveTrue(capacityPlan.getId());
+
             // Create epic efforts for each epic and each team (with 0 effort initially)
             for (RoadmapItem item : roadmapItems) {
                 for (Team team : teams) {
@@ -435,9 +465,14 @@ public class CapacityPlanningController {
                     .map(EpicEffort::getEpicId)
                     .collect(Collectors.toSet());
             
-            // Get all active teams for this product
-            List<Team> teams = teamRepository.findByProductIdAndIsActiveTrue(productId);
-            
+            // Get all active teams for this capacity plan
+            List<Team> teams = teamRepository.findByCapacityPlanIdAndIsActiveTrue(capacityPlan.getId());
+
+            // Get current epic IDs from roadmap
+            Set<String> currentRoadmapEpicIds = roadmapItems.stream()
+                    .map(RoadmapItem::getEpicId)
+                    .collect(Collectors.toSet());
+
             // Add epic efforts for new epics that don't already exist
             int newEffortsCreated = 0;
             for (RoadmapItem item : roadmapItems) {
@@ -456,8 +491,19 @@ public class CapacityPlanningController {
                     }
                 }
             }
-            
-            
+
+            // Remove epic efforts for epics that are no longer in the roadmap
+            List<EpicEffort> effortsToRemove = existingEfforts.stream()
+                    .filter(effort -> !currentRoadmapEpicIds.contains(effort.getEpicId()))
+                    .collect(Collectors.toList());
+
+            if (!effortsToRemove.isEmpty()) {
+                epicEffortRepository.deleteAll(effortsToRemove);
+                logger.info("Removed {} epic efforts from capacity plan ID {} (epics no longer in roadmap)",
+                    effortsToRemove.size(), capacityPlan.getId());
+            }
+
+
         } catch (Exception e) {
             logger.error("Error syncing capacity plan ID {} with roadmap", capacityPlan.getId(), e);
         }

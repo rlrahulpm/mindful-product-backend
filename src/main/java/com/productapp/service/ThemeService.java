@@ -37,32 +37,31 @@ public class ThemeService {
         return themeRepository.save(theme);
     }
     
-    public Theme createTheme(Product product, String name, String description, String color) {
+    public Theme createTheme(Product product, String name, String color) {
         if (themeRepository.existsByProductIdAndName(product.getId(), name)) {
             throw new IllegalArgumentException("Theme with name '" + name + "' already exists for this product");
         }
-        
-        Theme theme = new Theme(product, name, description, color);
+
+        Theme theme = new Theme(product, name, color);
         return themeRepository.save(theme);
     }
     
-    public Theme updateTheme(Long id, Long productId, String name, String description, String color) {
+    public Theme updateTheme(Long id, Long productId, String name, String color) {
         Optional<Theme> existingTheme = themeRepository.findByIdAndProductId(id, productId);
         if (existingTheme.isEmpty()) {
             throw new IllegalArgumentException("Theme not found");
         }
-        
+
         Theme theme = existingTheme.get();
-        
-        if (!theme.getName().equals(name) && 
+
+        if (!theme.getName().equals(name) &&
             themeRepository.existsByProductIdAndName(productId, name)) {
             throw new IllegalArgumentException("Theme with name '" + name + "' already exists for this product");
         }
-        
+
         theme.setName(name);
-        theme.setDescription(description);
         theme.setColor(color);
-        
+
         return themeRepository.save(theme);
     }
     

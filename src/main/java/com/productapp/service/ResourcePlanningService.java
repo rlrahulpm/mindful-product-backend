@@ -36,38 +36,8 @@ public class ResourcePlanningService {
     @Autowired
     private ProductRepository productRepository;
 
-    // Team management methods
-    public Team createTeam(Long productId, TeamRequest request) {
-        // Validate product exists
-        if (!productRepository.existsById(productId)) {
-            throw new ResourceNotFoundException("Product not found with id: " + productId);
-        }
-
-        // Check if team name already exists for this product
-        if (teamRepository.existsByProductIdAndNameAndIsActiveTrue(productId, request.getName(), null)) {
-            throw new RuntimeException("Team name already exists for this product");
-        }
-
-        Team team = new Team();
-        team.setName(request.getName());
-        team.setDescription(request.getDescription());
-        team.setProductId(productId);
-        team.setIsActive(true);
-
-        return teamRepository.save(team);
-    }
-
-    public List<Team> getTeamsByProduct(Long productId) {
-        return teamRepository.findByProductIdAndIsActiveTrue(productId);
-    }
-
-    public void deleteTeam(Long teamId) {
-        Team team = teamRepository.findById(teamId)
-                .orElseThrow(() -> new ResourceNotFoundException("Team not found with id: " + teamId));
-
-        team.setIsActive(false);
-        teamRepository.save(team);
-    }
+    // Note: Team management methods have been moved to CapacityPlanningController
+    // Teams are now managed at the quarterly capacity plan level instead of product level
 
     // Member management methods
     public TeamMember addMemberToTeam(Long teamId, TeamMemberRequest request) {

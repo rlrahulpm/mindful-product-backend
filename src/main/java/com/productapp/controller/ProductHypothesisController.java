@@ -108,7 +108,6 @@ public class ProductHypothesisController {
                 Map<String, Object> themeMap = new HashMap<>();
                 themeMap.put("id", theme.getId().toString());
                 themeMap.put("name", theme.getName());
-                themeMap.put("description", theme.getDescription() != null ? theme.getDescription() : "");
                 themeMap.put("color", theme.getColor());
                 return themeMap;
             }).toList();
@@ -120,10 +119,6 @@ public class ProductHypothesisController {
                 Map<String, Object> initiativeMap = new HashMap<>();
                 initiativeMap.put("id", initiative.getId().toString());
                 initiativeMap.put("title", initiative.getTitle());
-                initiativeMap.put("description", initiative.getDescription() != null ? initiative.getDescription() : "");
-                initiativeMap.put("priority", initiative.getPriority() != null ? initiative.getPriority() : "Medium");
-                initiativeMap.put("timeline", initiative.getTimeline() != null ? initiative.getTimeline() : "");
-                initiativeMap.put("owner", initiative.getOwner() != null ? initiative.getOwner() : "");
                 return initiativeMap;
             }).toList();
             initiativesJson = objectMapper.writeValueAsString(initiativeList);
@@ -227,7 +222,6 @@ public class ProductHypothesisController {
                 Map<String, Object> themeMap = new HashMap<>();
                 themeMap.put("id", theme.getId().toString());
                 themeMap.put("name", theme.getName());
-                themeMap.put("description", theme.getDescription() != null ? theme.getDescription() : "");
                 themeMap.put("color", theme.getColor());
                 return themeMap;
             }).toList();
@@ -239,10 +233,6 @@ public class ProductHypothesisController {
                 Map<String, Object> initiativeMap = new HashMap<>();
                 initiativeMap.put("id", initiative.getId().toString());
                 initiativeMap.put("title", initiative.getTitle());
-                initiativeMap.put("description", initiative.getDescription() != null ? initiative.getDescription() : "");
-                initiativeMap.put("priority", initiative.getPriority() != null ? initiative.getPriority() : "Medium");
-                initiativeMap.put("timeline", initiative.getTimeline() != null ? initiative.getTimeline() : "");
-                initiativeMap.put("owner", initiative.getOwner() != null ? initiative.getOwner() : "");
                 return initiativeMap;
             }).toList();
             savedInitiativesJson = objectMapper.writeValueAsString(initiativeList);
@@ -318,19 +308,17 @@ public class ProductHypothesisController {
         
         for (Map<String, Object> themeData : themes) {
             String name = (String) themeData.get("name");
-            String description = (String) themeData.get("description");
             String color = (String) themeData.get("color");
-            
+
             if (name != null && !name.trim().isEmpty()) {
                 // Try to find existing theme by name
                 Optional<Theme> existingTheme = existingThemes.stream()
                         .filter(t -> t.getName().equals(name))
                         .findFirst();
-                        
+
                 if (existingTheme.isPresent()) {
                     // Update existing theme
                     Theme theme = existingTheme.get();
-                    theme.setDescription(description);
                     String newColor = color != null ? color : "#3498db";
                     if (!newColor.equals(theme.getColor())) {
                         // Color changed - update theme and propagate to related tables
@@ -347,7 +335,7 @@ public class ProductHypothesisController {
                     }
                 } else {
                     // Create new theme
-                    Theme theme = new Theme(product, name, description, color != null ? color : "#3498db");
+                    Theme theme = new Theme(product, name, color != null ? color : "#3498db");
                     themeRepository.save(theme);
                 }
             }
@@ -397,14 +385,9 @@ public class ProductHypothesisController {
         
         for (Map<String, Object> initiativeData : initiatives) {
             String title = (String) initiativeData.get("title");
-            String description = (String) initiativeData.get("description");
-            String priority = (String) initiativeData.get("priority");
-            String timeline = (String) initiativeData.get("timeline");
-            String owner = (String) initiativeData.get("owner");
-            
+
             if (title != null && !title.trim().isEmpty()) {
-                Initiative initiative = new Initiative(product, title, description, 
-                    priority != null ? priority : "Medium", timeline, owner);
+                Initiative initiative = new Initiative(product, title);
                 initiativeRepository.save(initiative);
             }
         }

@@ -23,10 +23,7 @@ public class Theme {
     
     @Column(name = "name", nullable = false)
     private String name;
-    
-    @Column(name = "description", columnDefinition = "TEXT")
-    private String description;
-    
+
     @Column(name = "color", nullable = false, length = 7)
     private String color;
     
@@ -41,10 +38,9 @@ public class Theme {
     // Constructors
     public Theme() {}
     
-    public Theme(Product product, String name, String description, String color) {
+    public Theme(Product product, String name, String color) {
         this.product = product;
         this.name = name;
-        this.description = description;
         this.color = color;
     }
     
@@ -68,23 +64,15 @@ public class Theme {
     public String getName() {
         return name;
     }
-    
+
     public void setName(String name) {
         this.name = name;
     }
-    
-    public String getDescription() {
-        return description;
-    }
-    
-    public void setDescription(String description) {
-        this.description = description;
-    }
-    
+
     public String getColor() {
         return color;
     }
-    
+
     public void setColor(String color) {
         this.color = color;
     }
