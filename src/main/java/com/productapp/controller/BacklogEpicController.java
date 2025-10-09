@@ -55,83 +55,184 @@ public class BacklogEpicController {
 
     @GetMapping
     @Operation(summary = "Get product backlog epics", description = "Retrieve all epics for a specific product")
-    public ResponseEntity<?> getProductBacklogEpics(@PathVariable Long productId, HttpServletRequest request) {
+    public ResponseEntity<?> getProductBacklogEpics(
+            @PathVariable Long productId,
+            @RequestParam(required = false, defaultValue = "true") Boolean backlogOnly,
+            HttpServletRequest request) {
         try {
             // Get user ID from JWT token
             String token = request.getHeader("Authorization").substring(7);
             Long userId = jwtUtil.getUserIdFromJwtToken(token);
-            
-            
+
+
             // Check if user owns the product
             Optional<Product> productOpt = productRepository.findById(productId);
             if (productOpt.isEmpty()) {
                 return ResponseEntity.notFound().build();
             }
-            
+
             Product product = productOpt.get();
             if (!product.getUser().getId().equals(userId)) {
                 logger.warn("User ID: {} attempted to access backlog epics for product ID: {} they don't own", userId, productId);
                 return ResponseEntity.status(403).body("Access denied");
             }
-            
-            // Get epics directly from product
-            List<BacklogEpic> epics = backlogEpicRepository.findByProductId(productId);
-            
+
+            // Get epics - filter by backlog status only if backlogOnly=true
+            List<BacklogEpic> epics;
+            if (backlogOnly) {
+                // Get only epics with status 'backlog' (for Product Backlog page)
+                epics = backlogEpicRepository.findByProductIdAndStatus(productId, "backlog");
+            } else {
+                // Get all epics regardless of status (for Roadmap Planner Add/Remove modal)
+                epics = backlogEpicRepository.findByProductId(productId);
+            }
+
             BacklogEpicResponse response = convertToResponse(productId, epics);
-            
+
             return ResponseEntity.ok(response);
-            
+
         } catch (Exception e) {
             logger.error("Error retrieving backlog epics for product ID: {}", productId, e);
             return ResponseEntity.status(500).body("Error retrieving backlog epics");
         }
     }
-    
-    @PostMapping
+
+    @PostMapping("/epic")
     @Transactional
-    @Operation(summary = "Update product backlog epics", description = "Update epics with cascade deletion across modules")
-    public ResponseEntity<?> updateProductBacklogEpics(@PathVariable Long productId, @RequestBody BacklogEpicRequest request, HttpServletRequest httpRequest) {
+    @Operation(summary = "Create a single epic", description = "Create a new epic in the backlog")
+    public ResponseEntity<?> createSingleEpic(
+            @PathVariable Long productId,
+            @RequestBody String epicJson,
+            HttpServletRequest httpRequest) {
         try {
             // Get user ID from JWT token
             String token = httpRequest.getHeader("Authorization").substring(7);
             Long userId = jwtUtil.getUserIdFromJwtToken(token);
-            
-            
+
             // Check if user owns the product
             Optional<Product> productOpt = productRepository.findById(productId);
             if (productOpt.isEmpty()) {
                 return ResponseEntity.notFound().build();
             }
-            
+
+            Product product = productOpt.get();
+            if (!product.getUser().getId().equals(userId)) {
+                logger.warn("User ID: {} attempted to create epic in product ID: {} they don't own", userId, productId);
+                return ResponseEntity.status(403).body("Access denied");
+            }
+
+            // Parse the epic DTO
+            com.fasterxml.jackson.databind.ObjectMapper mapper = new com.fasterxml.jackson.databind.ObjectMapper();
+            EpicDto epicDto = mapper.readValue(epicJson, EpicDto.class);
+
+            // Create new epic
+            BacklogEpic epic = new BacklogEpic();
+            epic.setProduct(product);
+            epic.setEpicId(epicDto.getId());
+            epic.setEpicName(epicDto.getName());
+            epic.setEpicDescription(epicDto.getDescription());
+            epic.setThemeId(epicDto.getThemeId());
+            epic.setThemeName(epicDto.getThemeName());
+            epic.setThemeColor(epicDto.getThemeColor());
+            epic.setInitiativeId(epicDto.getInitiativeId());
+            epic.setInitiativeName(epicDto.getInitiativeName());
+            epic.setTrack(epicDto.getTrack());
+
+            // Save the epic
+            BacklogEpic savedEpic = backlogEpicRepository.save(epic);
+            logger.info("Successfully created epic {} in product {}", epicDto.getId(), productId);
+
+            // Process user stories if provided
+            if (epicDto.getUserStories() != null && !epicDto.getUserStories().isEmpty()) {
+                for (UserStoryDto userStoryDto : epicDto.getUserStories()) {
+                    userStoryService.createUserStory(
+                        productId,
+                        epicDto.getId(),
+                        userStoryDto.getTitle(),
+                        userStoryDto.getDescription(),
+                        userStoryDto.getAcceptanceCriteria(),
+                        userStoryDto.getPriority(),
+                        userStoryDto.getStoryPoints(),
+                        userId
+                    );
+                }
+            }
+
+            // Return the saved epic
+            EpicDto responseDto = new EpicDto();
+            responseDto.setId(savedEpic.getEpicId());
+            responseDto.setName(savedEpic.getEpicName());
+            responseDto.setDescription(savedEpic.getEpicDescription());
+            responseDto.setThemeId(savedEpic.getThemeId());
+            responseDto.setThemeName(savedEpic.getThemeName());
+            responseDto.setThemeColor(savedEpic.getThemeColor());
+            responseDto.setInitiativeId(savedEpic.getInitiativeId());
+            responseDto.setInitiativeName(savedEpic.getInitiativeName());
+            responseDto.setTrack(savedEpic.getTrack());
+
+            return ResponseEntity.ok(responseDto);
+
+        } catch (Exception e) {
+            logger.error("Error creating epic for product ID: {}", productId, e);
+            return ResponseEntity.status(500).body("Error creating epic");
+        }
+    }
+
+    @PostMapping
+    @Transactional
+    @Operation(summary = "Update product backlog epics", description = "Update epics with proper upsert pattern to prevent data loss")
+    public ResponseEntity<?> updateProductBacklogEpics(@PathVariable Long productId, @RequestBody BacklogEpicRequest request, HttpServletRequest httpRequest) {
+        try {
+            // Get user ID from JWT token
+            String token = httpRequest.getHeader("Authorization").substring(7);
+            Long userId = jwtUtil.getUserIdFromJwtToken(token);
+
+
+            // Check if user owns the product
+            Optional<Product> productOpt = productRepository.findById(productId);
+            if (productOpt.isEmpty()) {
+                return ResponseEntity.notFound().build();
+            }
+
             Product product = productOpt.get();
             if (!product.getUser().getId().equals(userId)) {
                 logger.warn("User ID: {} attempted to update backlog epics for product ID: {} they don't own", userId, productId);
                 return ResponseEntity.status(403).body("Access denied");
             }
-            
-            // Get current epic IDs for cascade deletion
+
+            // Get current epics (as a map for efficient lookup)
             List<BacklogEpic> currentEpics = backlogEpicRepository.findByProductId(productId);
-            Set<String> currentEpicIds = currentEpics.stream()
-                    .map(BacklogEpic::getEpicId)
-                    .collect(Collectors.toSet());
-            
-            // Use native query to delete all epics for this product
-            // This won't fail even if no records exist
-            backlogEpicRepository.deleteAllByProductIdNative(productId);
-            
-            // Parse and create new epics
-            List<BacklogEpic> newEpics = new ArrayList<>();
+            java.util.Map<String, BacklogEpic> currentEpicsMap = currentEpics.stream()
+                    .collect(Collectors.toMap(BacklogEpic::getEpicId, epic -> epic));
+            Set<String> currentEpicIds = currentEpicsMap.keySet();
+
+            // Parse new epics from request
+            List<BacklogEpic> savedEpics = new ArrayList<>();
             Set<String> newEpicIds = new HashSet<>();
-            
+
             if (request.getEpics() != null && !request.getEpics().isEmpty()) {
                 com.fasterxml.jackson.databind.ObjectMapper mapper = new com.fasterxml.jackson.databind.ObjectMapper();
                 com.fasterxml.jackson.core.type.TypeReference<List<EpicDto>> typeRef = new com.fasterxml.jackson.core.type.TypeReference<List<EpicDto>>() {};
                 List<EpicDto> epicDtos = mapper.readValue(request.getEpics(), typeRef);
-                
+
+                // Update or create epics using proper upsert pattern
                 for (EpicDto epicDto : epicDtos) {
-                    BacklogEpic epic = new BacklogEpic();
-                    epic.setProduct(product);
-                    epic.setEpicId(epicDto.getId());
+                    newEpicIds.add(epicDto.getId());
+
+                    BacklogEpic epic;
+                    if (currentEpicsMap.containsKey(epicDto.getId())) {
+                        // Update existing epic
+                        epic = currentEpicsMap.get(epicDto.getId());
+                        logger.debug("Updating existing epic: {}", epicDto.getId());
+                    } else {
+                        // Create new epic
+                        epic = new BacklogEpic();
+                        epic.setProduct(product);
+                        epic.setEpicId(epicDto.getId());
+                        logger.debug("Creating new epic: {}", epicDto.getId());
+                    }
+
+                    // Set/update all fields
                     epic.setEpicName(epicDto.getName());
                     epic.setEpicDescription(epicDto.getDescription());
                     epic.setThemeId(epicDto.getThemeId());
@@ -140,13 +241,11 @@ public class BacklogEpicController {
                     epic.setInitiativeId(epicDto.getInitiativeId());
                     epic.setInitiativeName(epicDto.getInitiativeName());
                     epic.setTrack(epicDto.getTrack());
-                    
-                    newEpics.add(epic);
-                    newEpicIds.add(epicDto.getId());
+
+                    // Save the epic
+                    BacklogEpic savedEpic = backlogEpicRepository.save(epic);
+                    savedEpics.add(savedEpic);
                 }
-                
-                // Save all new epics
-                backlogEpicRepository.saveAll(newEpics);
 
                 // Process user stories for each epic
                 for (EpicDto epicDto : epicDtos) {
@@ -166,24 +265,125 @@ public class BacklogEpicController {
                     }
                 }
             }
-            
-            // Find deleted epics and cascade delete
+
+            // Find deleted epics and cascade delete ONLY those that were actually removed
             Set<String> deletedEpicIds = new HashSet<>(currentEpicIds);
             deletedEpicIds.removeAll(newEpicIds);
-            
-            for (String deletedEpicId : deletedEpicIds) {
-                userStoryService.deleteStoriesByEpic(deletedEpicId);
-                roadmapItemRepository.deleteByEpicIdAndProductId(deletedEpicId, productId);
-                epicEffortRepository.deleteByEpicIdAndProductId(deletedEpicId, productId);
+
+            if (!deletedEpicIds.isEmpty()) {
+                logger.info("Deleting {} epics that were removed from backlog", deletedEpicIds.size());
+                for (String deletedEpicId : deletedEpicIds) {
+                    // Delete the epic from backlog_epics
+                    backlogEpicRepository.deleteByProductIdAndEpicId(productId, deletedEpicId);
+
+                    // Cascade delete from related modules
+                    userStoryService.deleteStoriesByEpic(deletedEpicId);
+                    roadmapItemRepository.deleteByEpicIdAndProductId(deletedEpicId, productId);
+                    epicEffortRepository.deleteByEpicIdAndProductId(deletedEpicId, productId);
+                    logger.debug("Deleted epic: {}", deletedEpicId);
+                }
             }
-            
-            BacklogEpicResponse response = convertToResponse(productId, newEpics);
-            
+
+            BacklogEpicResponse response = convertToResponse(productId, savedEpics);
+
             return ResponseEntity.ok(response);
-            
+
         } catch (Exception e) {
             logger.error("Error updating backlog epics for product ID: {}", productId, e);
             return ResponseEntity.status(500).body("Error updating backlog epics");
+        }
+    }
+
+    @PutMapping("/{epicId}")
+    @Transactional
+    @Operation(summary = "Update a single epic", description = "Update an individual epic without affecting other epics")
+    public ResponseEntity<?> updateSingleEpic(
+            @PathVariable Long productId,
+            @PathVariable String epicId,
+            @RequestBody String epicJson,
+            HttpServletRequest httpRequest) {
+        try {
+            // Get user ID from JWT token
+            String token = httpRequest.getHeader("Authorization").substring(7);
+            Long userId = jwtUtil.getUserIdFromJwtToken(token);
+
+            // Check if user owns the product
+            Optional<Product> productOpt = productRepository.findById(productId);
+            if (productOpt.isEmpty()) {
+                return ResponseEntity.notFound().build();
+            }
+
+            Product product = productOpt.get();
+            if (!product.getUser().getId().equals(userId)) {
+                logger.warn("User ID: {} attempted to update epic in product ID: {} they don't own", userId, productId);
+                return ResponseEntity.status(403).body("Access denied");
+            }
+
+            // Parse the epic DTO
+            com.fasterxml.jackson.databind.ObjectMapper mapper = new com.fasterxml.jackson.databind.ObjectMapper();
+            EpicDto epicDto = mapper.readValue(epicJson, EpicDto.class);
+
+            // Find existing epic or create new
+            Optional<BacklogEpic> existingEpicOpt = backlogEpicRepository.findByProductIdAndEpicId(productId, epicId);
+
+            BacklogEpic epic;
+            if (existingEpicOpt.isPresent()) {
+                epic = existingEpicOpt.get();
+                logger.debug("Updating existing epic: {}", epicId);
+            } else {
+                epic = new BacklogEpic();
+                epic.setProduct(product);
+                epic.setEpicId(epicId);
+                logger.debug("Creating new epic: {}", epicId);
+            }
+
+            // Update all fields
+            epic.setEpicName(epicDto.getName());
+            epic.setEpicDescription(epicDto.getDescription());
+            epic.setThemeId(epicDto.getThemeId());
+            epic.setThemeName(epicDto.getThemeName());
+            epic.setThemeColor(epicDto.getThemeColor());
+            epic.setInitiativeId(epicDto.getInitiativeId());
+            epic.setInitiativeName(epicDto.getInitiativeName());
+            epic.setTrack(epicDto.getTrack());
+
+            // Save the epic
+            BacklogEpic savedEpic = backlogEpicRepository.save(epic);
+            logger.info("Successfully updated epic {} in product {}", epicId, productId);
+
+            // Process user stories if provided
+            if (epicDto.getUserStories() != null && !epicDto.getUserStories().isEmpty()) {
+                for (UserStoryDto userStoryDto : epicDto.getUserStories()) {
+                    userStoryService.createUserStory(
+                        productId,
+                        epicDto.getId(),
+                        userStoryDto.getTitle(),
+                        userStoryDto.getDescription(),
+                        userStoryDto.getAcceptanceCriteria(),
+                        userStoryDto.getPriority(),
+                        userStoryDto.getStoryPoints(),
+                        userId
+                    );
+                }
+            }
+
+            // Return the saved epic
+            EpicDto responseDto = new EpicDto();
+            responseDto.setId(savedEpic.getEpicId());
+            responseDto.setName(savedEpic.getEpicName());
+            responseDto.setDescription(savedEpic.getEpicDescription());
+            responseDto.setThemeId(savedEpic.getThemeId());
+            responseDto.setThemeName(savedEpic.getThemeName());
+            responseDto.setThemeColor(savedEpic.getThemeColor());
+            responseDto.setInitiativeId(savedEpic.getInitiativeId());
+            responseDto.setInitiativeName(savedEpic.getInitiativeName());
+            responseDto.setTrack(savedEpic.getTrack());
+
+            return ResponseEntity.ok(responseDto);
+
+        } catch (Exception e) {
+            logger.error("Error updating epic {} for product ID: {}", epicId, productId, e);
+            return ResponseEntity.status(500).body("Error updating epic");
         }
     }
 
@@ -319,6 +519,7 @@ public class BacklogEpicController {
     }
 
     // DTO class for user story data
+    @com.fasterxml.jackson.annotation.JsonIgnoreProperties(ignoreUnknown = true)
     public static class UserStoryDto {
         private Long id;
         private String title;

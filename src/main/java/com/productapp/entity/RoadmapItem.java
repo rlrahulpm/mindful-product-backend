@@ -24,7 +24,10 @@ public class RoadmapItem {
     
     @Column(name = "epic_description", columnDefinition = "TEXT")
     private String epicDescription;
-    
+
+    @Column(name = "initiative_id")
+    private String initiativeId;
+
     @Column(name = "priority")
     private String priority;
     
@@ -60,12 +63,18 @@ public class RoadmapItem {
     
     @Column(name = "initiative_name")
     private String initiativeName;
-    
+
+    @Column(name = "theme_id")
+    private String themeId;
+
     @Column(name = "theme_name")
     private String themeName;
-    
+
     @Column(name = "theme_color", length = 7)
     private String themeColor;
+
+    @Column(name = "track", length = 100)
+    private String track;
     
     @Column(name = "published")
     private Boolean published = false;
@@ -243,7 +252,23 @@ public class RoadmapItem {
     public void setInitiativeName(String initiativeName) {
         this.initiativeName = initiativeName;
     }
-    
+
+    public String getInitiativeId() {
+        return initiativeId;
+    }
+
+    public void setInitiativeId(String initiativeId) {
+        this.initiativeId = initiativeId;
+    }
+
+    public String getThemeId() {
+        return themeId;
+    }
+
+    public void setThemeId(String themeId) {
+        this.themeId = themeId;
+    }
+
     public String getThemeName() {
         return themeName;
     }
@@ -259,7 +284,15 @@ public class RoadmapItem {
     public void setThemeColor(String themeColor) {
         this.themeColor = themeColor;
     }
-    
+
+    public String getTrack() {
+        return track;
+    }
+
+    public void setTrack(String track) {
+        this.track = track;
+    }
+
     public Boolean getPublished() {
         return published;
     }

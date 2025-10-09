@@ -235,14 +235,23 @@ public class QuarterlyRoadmapV2Controller {
                 // Always fetch current theme color from backlog epic to ensure up-to-date colors
                 BacklogEpic epicDetails = getEpicDetails(roadmap.getProductId(), item.getEpicId());
                 if (epicDetails != null) {
+                    dtoItem.setInitiativeId(epicDetails.getInitiativeId());
                     dtoItem.setInitiativeName(epicDetails.getInitiativeName());
+                    dtoItem.setThemeId(epicDetails.getThemeId());
                     dtoItem.setThemeName(epicDetails.getThemeName());
                     dtoItem.setThemeColor(epicDetails.getThemeColor());
+                    dtoItem.setTrack(epicDetails.getTrack());
+                    logger.info("Mapped epic details - EpicId: {}, Initiative: {}, Theme: {}, Track: {}",
+                                item.getEpicId(), epicDetails.getInitiativeName(), epicDetails.getThemeName(), epicDetails.getTrack());
                 } else {
                     // Fallback to stored values if epic details not found
+                    dtoItem.setInitiativeId(item.getInitiativeId());
                     dtoItem.setInitiativeName(item.getInitiativeName());
+                    dtoItem.setThemeId(item.getThemeId());
                     dtoItem.setThemeName(item.getThemeName());
                     dtoItem.setThemeColor(item.getThemeColor());
+                    dtoItem.setTrack(item.getTrack());
+                    logger.warn("Epic details not found for epicId: {}, using stored values from roadmap_items", item.getEpicId());
                 }
                 
                 // Format dates for response
@@ -493,8 +502,23 @@ public class QuarterlyRoadmapV2Controller {
                 logger.info("Published {} items to roadmap visualization", itemsToPublish.size());
             }
 
-            // Remove proposed items from roadmap planner
+            // Remove proposed items from roadmap planner and reset their status to 'backlog'
             if (!itemsToRemove.isEmpty()) {
+                // Reset status to 'backlog' for unpublished epics and cleanup capacity planning
+                for (RoadmapItem item : itemsToRemove) {
+                    Optional<BacklogEpic> backlogEpicOpt = backlogEpicRepository.findByProductIdAndEpicId(productId, item.getEpicId());
+                    if (backlogEpicOpt.isPresent()) {
+                        BacklogEpic backlogEpic = backlogEpicOpt.get();
+                        backlogEpic.setStatus("backlog");
+                        backlogEpicRepository.save(backlogEpic);
+                        logger.info("Reset epic {} status to 'backlog'", item.getEpicId());
+                    }
+
+                    // Delete epic_efforts for this epic from capacity planning
+                    epicEffortRepository.deleteByEpicIdAndProductId(item.getEpicId(), productId);
+                    logger.info("Removed capacity planning efforts for epic {}", item.getEpicId());
+                }
+
                 roadmapItemRepository.deleteAll(itemsToRemove);
                 logger.info("Removed {} proposed items from roadmap planner", itemsToRemove.size());
             }

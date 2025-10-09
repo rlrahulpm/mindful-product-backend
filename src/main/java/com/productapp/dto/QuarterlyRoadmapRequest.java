@@ -66,10 +66,13 @@ public class QuarterlyRoadmapRequest {
         private Integer effortRating;
         private String startDate;
         private String endDate;
+        private String initiativeId;
         private String initiativeName;
+        private String themeId;
         private String themeName;
         private String themeColor;
-        
+        private String track;
+
         public RoadmapItem() {
         }
         
@@ -230,6 +233,30 @@ public class QuarterlyRoadmapRequest {
         
         public void setThemeColor(String themeColor) {
             this.themeColor = themeColor;
+        }
+
+        public String getInitiativeId() {
+            return initiativeId;
+        }
+
+        public void setInitiativeId(String initiativeId) {
+            this.initiativeId = initiativeId;
+        }
+
+        public String getThemeId() {
+            return themeId;
+        }
+
+        public void setThemeId(String themeId) {
+            this.themeId = themeId;
+        }
+
+        public String getTrack() {
+            return track;
+        }
+
+        public void setTrack(String track) {
+            this.track = track;
         }
     }
 }

@@ -26,7 +26,10 @@ public class BacklogEpic {
     
     @Column(name = "epic_description", columnDefinition = "TEXT")
     private String epicDescription;
-    
+
+    @Column(name = "status", length = 50)
+    private String status = "backlog";
+
     @Column(name = "theme_id")
     private String themeId;
     
@@ -104,7 +107,15 @@ public class BacklogEpic {
     public void setEpicDescription(String epicDescription) {
         this.epicDescription = epicDescription;
     }
-    
+
+    public String getStatus() {
+        return status;
+    }
+
+    public void setStatus(String status) {
+        this.status = status;
+    }
+
     public String getThemeId() {
         return themeId;
     }
